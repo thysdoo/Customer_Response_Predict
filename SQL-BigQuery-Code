@@ -1,0 +1,93 @@
+-- Đếm dòng dữ liệu
+SELECT count(*) 
+FROM `possible-byway-421016.DA04_K300.EDA_Marketing-Customer`
+LIMIT 5
+-- 6540
+
+-- In thử vài dòng
+SELECT * 
+FROM `possible-byway-421016.DA04_K300.EDA_Marketing-Customer`
+LIMIT 100
+
+-------------------- TH1: LOGISTIC REGRESSION MODEL ---------------------
+-- CREATE MODEL
+CREATE OR REPLACE MODEL DA04_K300.customer_response_logistic_model
+OPTIONS(
+  model_type = 'LOGISTIC_REG',
+  input_label_cols = ['Response'],
+  AUTO_CLASS_WEIGHTS = TRUE
+)
+AS 
+SELECT *
+EXCEPT (Customer, Effective_To_Date, Customer_Lifetime_Value, State, Coverage, Gender, Policy_Type)
+FROM `possible-byway-421016.DA04_K300.EDA_Marketing-Customer` 
+WHERE Response is not null;
+
+-- EVALUATION
+SELECT *
+FROM ML.EVALUATE(MODEL DA04_K300.customer_response_logistic_model)
+
+SELECT *
+FROM ML.CONFUSION_MATRIX(MODEL DA04_K300.customer_response_logistic_model)
+
+SELECT *
+FROM ML.ROC_CURVE(MODEL DA04_K300.customer_response_logistic_model)
+
+-------------------- TH2: BOOSTED TREE MODEL ---------------------
+-- CREATE MODEL
+CREATE OR REPLACE MODEL DA04_K300.customer_response_boostedtree_model
+OPTIONS(
+  model_type = 'BOOSTED_TREE_CLASSIFIER',
+  input_label_cols = ['Response'],
+  NUM_PARALLEL_TREE = 2
+)
+AS 
+SELECT *
+EXCEPT (Customer, Effective_To_Date, Customer_Lifetime_Value, State, Coverage, Gender, Policy_Type)
+FROM `possible-byway-421016.DA04_K300.EDA_Marketing-Customer` 
+WHERE Response is not null;
+
+-- EVALUATION
+SELECT *
+FROM ML.EVALUATE(MODEL DA04_K300.customer_response_boostedtree_model)
+
+SELECT *
+FROM ML.CONFUSION_MATRIX(MODEL DA04_K300.customer_response_boostedtree_model)
+
+SELECT *
+FROM ML.ROC_CURVE(MODEL DA04_K300.customer_response_boostedtree_model)
+
+-------------------- TH3: RANDOM FOREST MODEL ---------------------
+-- CREATE MODEL
+CREATE OR REPLACE MODEL DA04_K300.customer_response_randomforest_model
+OPTIONS(
+  model_type = 'RANDOM_FOREST_CLASSIFIER',
+  input_label_cols = ['Response'],
+  NUM_PARALLEL_TREE = 2
+)
+AS 
+SELECT *
+EXCEPT (Customer, Effective_To_Date, Customer_Lifetime_Value, State, Coverage, Gender, Policy_Type)
+FROM `possible-byway-421016.DA04_K300.EDA_Marketing-Customer` 
+WHERE Response is not null;
+
+-- EVALUATION
+SELECT *
+FROM ML.EVALUATE(MODEL DA04_K300.customer_response_randomforest_model)
+
+SELECT *
+FROM ML.CONFUSION_MATRIX(MODEL DA04_K300.customer_response_randomforest_model)
+
+SELECT *
+FROM ML.ROC_CURVE(MODEL DA04_K300.customer_response_randomforest_model)
+
+-- Chọn Random Forest Model để tiến hành dự đoán vì có chỉ số Accuracy và Recall tốt nhất trong 3 model
+-- PREDICT
+SELECT *
+FROM
+  ML.PREDICT(MODEL DA04_K300.customer_response_randomforest_model,
+  (SELECT *
+  EXCEPT (Response, Customer, Effective_To_Date, Customer_Lifetime_Value, State, Coverage, Gender, Policy_Type)
+  FROM `possible-byway-421016.DA04_K300.EDA_Marketing-Customer` 
+  ));
+
